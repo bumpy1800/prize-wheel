@@ -203,44 +203,6 @@ h1 {
   color: #ffb4b4;
 }
 
-.stock-list {
-  margin-top: 1.25rem;
-  width: min(92vw, 420px);
-  display: grid;
-  gap: 0.4rem;
-}
-
-.stock-list h2 {
-  margin: 0 0 0.35rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-
-.stock-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.45rem 0.7rem;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 0.9rem;
-}
-
-.stock-row .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 0.45rem;
-  vertical-align: middle;
-}
-
-.stock-row.sold-out {
-  opacity: 0.5;
-}
-
 /* —— Admin (hidden unless body.admin-open) —— */
 #admin {
   display: none;
