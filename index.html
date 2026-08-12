@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>돌려돌려 돌림판</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!--
+      Admin access (hidden from player view):
+      1) URL hash: open index.html#admin  (or add #admin while page is open)
+      2) Keyboard: press A three times within 1 second
+      3) Close admin: #play hash, or press Escape, or click "관리자 닫기"
+    -->
+    <header>
+      <h1 id="title">돌려돌려 돌림판</h1>
+      <p class="subtitle">버튼을 눌러 경품을 뽑아보세요!</p>
+    </header>
+
+    <main>
+      <div class="stage" aria-label="돌림판">
+        <div class="pointer" aria-hidden="true"></div>
+        <div class="wheel-wrap">
+          <canvas id="wheel" width="640" height="640" role="img" aria-label="경품 돌림판"></canvas>
+        </div>
+        <div class="hub" id="hub">
+          <div>
+            <div class="label">당첨</div>
+            <p class="result empty" id="resultText">준비</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button type="button" id="spinBtn">돌리기!</button>
+        <p class="status" id="status" aria-live="polite"></p>
+      </div>
+
+      <section class="stock-list" aria-label="남은 경품">
+        <h2>남은 수량</h2>
+        <div id="stockRows"></div>
+      </section>
+
+      <section id="admin" aria-label="관리자 설정" hidden>
+        <h2>관리자 설정</h2>
+        <p class="hint">
+          비중(%)은 재고가 남은 경품끼리 다시 정규화되어 추첨됩니다.
+          재고 0인 경품은 판에 영역이 남지만 절대 당첨되지 않습니다.
+          설정은 이 브라우저 localStorage에 저장됩니다.
+        </p>
+        <div style="overflow-x: auto">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>비중 %</th>
+                <th>총 수량</th>
+                <th>남은 수량</th>
+                <th>색</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="adminBody"></tbody>
+          </table>
+        </div>
+        <div class="admin-actions">
+          <button type="button" id="addPrize">+ 경품 추가</button>
+          <button type="button" class="primary" id="saveAdmin">저장</button>
+          <button type="button" id="resetStock">남은 수량 = 총 수량</button>
+          <button type="button" class="danger" id="resetDefaults">기본값 복원</button>
+          <button type="button" id="closeAdmin">관리자 닫기</button>
+        </div>
+        <p id="adminMsg" role="status"></p>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "prize-wheel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Exhibition prize wheel — static web game",
+  "scripts": {
+    "test": "node --test wheel-logic.test.js",
+    "start": "npx --yes serve ."
+  }
+}
