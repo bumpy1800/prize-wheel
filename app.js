@@ -28,7 +28,6 @@ const ctx = canvas.getContext('2d');
 const spinBtn = document.getElementById('spinBtn');
 const resultText = document.getElementById('resultText');
 const statusEl = document.getElementById('status');
-const stockRows = document.getElementById('stockRows');
 const adminEl = document.getElementById('admin');
 const adminBody = document.getElementById('adminBody');
 const adminMsg = document.getElementById('adminMsg');
@@ -90,7 +89,7 @@ const paintWheel = () => {
     ctx.font = 'bold 22px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const label = seg.remaining <= 0 ? `${seg.name} (소진)` : seg.name;
+    const label = seg.name;
     const maxW = r * 0.42;
     let text = label;
     if (ctx.measureText(text).width > maxW) {
@@ -110,25 +109,6 @@ const paintWheel = () => {
   ctx.stroke();
 };
 
-const renderStock = () => {
-  stockRows.replaceChildren(
-    ...prizes.map((p) => {
-      const row = document.createElement('div');
-      row.className = `stock-row${p.remaining <= 0 ? ' sold-out' : ''}`;
-      const left = document.createElement('span');
-      const dot = document.createElement('span');
-      dot.className = 'dot';
-      dot.style.background = p.color || '#888';
-      left.append(dot, document.createTextNode(p.name));
-      const right = document.createElement('span');
-      right.textContent =
-        p.remaining <= 0 ? '소진' : `${p.remaining} / ${p.total}`;
-      row.append(left, right);
-      return row;
-    }),
-  );
-};
-
 const showResult = (name, isEmpty = false) => {
   resultText.textContent = name;
   resultText.classList.toggle('empty', isEmpty);
@@ -139,7 +119,6 @@ const showResult = (name, isEmpty = false) => {
 
 const refresh = () => {
   paintWheel();
-  renderStock();
   canvas.style.transform = `rotate(${currentRotation}deg)`;
 };
 
@@ -167,7 +146,6 @@ const runSpin = () => {
 
   prizes = outcome.prizes;
   savePrizes();
-  renderStock();
 
   const extraSpins = 5 + Math.floor(Math.random() * 3);
   const align = targetRotationDeg(winSeg, 0);
@@ -192,7 +170,6 @@ const runSpin = () => {
     showResult(name, false);
     setStatus(`🎉 ${name} 당첨! 다시 돌릴 수 있습니다.`);
     paintWheel();
-    renderStock();
   };
   canvas.addEventListener('transitionend', onEnd);
 };
