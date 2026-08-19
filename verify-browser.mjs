@@ -87,7 +87,6 @@ const adminCheck = async (page) => {
 
   // Edit first prize share and stock via form
   await page.locator('#adminBody tr').first().locator('[data-field="share"]').fill('25');
-  await page.locator('#adminBody tr').first().locator('[data-field="remaining"]').fill('2');
   await page.locator('#adminBody tr').first().locator('[data-field="total"]').fill('2');
   await page.locator('#adminBody tr').first().locator('[data-field="name"]').fill('테스트경품');
   await page.locator('#saveAdmin').click();

@@ -10,7 +10,7 @@
     <!--
       Admin access (hidden from player view):
       1) URL hash: open index.html#admin  (or add #admin while page is open)
-      2) Keyboard: press A three times within 1 second
+      2) Keyboard: press A or ㅁ three times within 1 second
       3) Close admin: #play hash, or press Escape, or click "관리자 닫기"
     -->
     <header>
@@ -38,7 +38,7 @@
         <h2>관리자 설정</h2>
         <p class="hint">
           총 수량만 입력하면 비중(%)과 남은 수량이 자동으로 채워집니다.
-          비중은 총 수량 비율이며, 남은 수량은 총 수량과 같습니다.
+          비중은 총 수량 비율이며, 남은 수량은 총 수량과 같고 직접 수정할 수 없습니다.
           재고 0인 경품은 판에 영역이 남지만 절대 당첨되지 않습니다.
           설정은 이 브라우저 localStorage에 저장됩니다.
         </p>
@@ -60,7 +60,6 @@
         <div class="admin-actions">
           <button type="button" id="addPrize">+ 경품 추가</button>
           <button type="button" class="primary" id="saveAdmin">저장</button>
-          <button type="button" id="resetStock">남은 수량 = 총 수량</button>
           <button type="button" class="danger" id="resetDefaults">기본값 복원</button>
           <button type="button" id="closeAdmin">관리자 닫기</button>
         </div>

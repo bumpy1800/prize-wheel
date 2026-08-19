@@ -262,6 +262,9 @@ const renderAdminForm = () => {
       remIn.dataset.field = 'remaining';
       remIn.min = '0';
       remIn.step = '1';
+      remIn.readOnly = true;
+      remIn.tabIndex = -1;
+      remIn.classList.add('readonly');
       remIn.value = String(p.remaining);
       remTd.append(remIn);
 
@@ -346,21 +349,43 @@ const syncAdminHash = () => {
 };
 
 let aTaps = [];
+let lastAdminTapAt = 0;
+
+const isTypingField = (el) => {
+  if (!el || el === document.body) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+};
+
+const noteAdminTap = () => {
+  const now = Date.now();
+  if (now - lastAdminTapAt < 40) return;
+  lastAdminTapAt = now;
+  aTaps = aTaps.filter((t) => now - t < 1000);
+  aTaps.push(now);
+  if (aTaps.length >= 3) {
+    aTaps = [];
+    openAdmin();
+  }
+};
+
+const isAdminHotkey = (e) =>
+  e.code === 'KeyA' || e.key === 'a' || e.key === 'A' || e.key === 'ㅁ';
+
 const onKey = (e) => {
   if (e.key === 'Escape') {
     if (winDialog.open) return;
     if (document.body.classList.contains('admin-open')) closeAdmin();
     return;
   }
-  if (e.key === 'a' || e.key === 'A') {
-    const now = Date.now();
-    aTaps = aTaps.filter((t) => now - t < 1000);
-    aTaps.push(now);
-    if (aTaps.length >= 3) {
-      aTaps = [];
-      openAdmin();
-    }
-  }
+  if (isTypingField(e.target)) return;
+  if (isAdminHotkey(e)) noteAdminTap();
+};
+
+const onComposeTap = (e) => {
+  if (isTypingField(e.target)) return;
+  const data = e.data ?? '';
+  if (data.endsWith('ㅁ')) noteAdminTap();
 };
 
 export const __test = {
@@ -422,16 +447,6 @@ document.getElementById('saveAdmin').addEventListener('click', () => {
   setStatus('설정이 반영되었습니다.');
 });
 
-document.getElementById('resetStock').addEventListener('click', () => {
-  const form = readAdminForm();
-  prizes = form.map((p) => ({ ...p, remaining: p.total }));
-  savePrizes();
-  refresh();
-  renderAdminForm();
-  adminMsg.classList.remove('error');
-  adminMsg.textContent = '남은 수량을 총 수량으로 맞췄습니다.';
-});
-
 document.getElementById('resetDefaults').addEventListener('click', () => {
   prizes = defaultPrizes();
   savePrizes();
@@ -445,6 +460,7 @@ document.getElementById('resetDefaults').addEventListener('click', () => {
 document.getElementById('closeAdmin').addEventListener('click', closeAdmin);
 window.addEventListener('hashchange', syncAdminHash);
 window.addEventListener('keydown', onKey);
+window.addEventListener('compositionupdate', onComposeTap);
 
 refresh();
 syncAdminHash();
