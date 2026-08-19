@@ -53,6 +53,27 @@ const setStatus = (msg, warn = false) => {
   statusEl.classList.toggle('warn', warn);
 };
 
+const STOCK_EMPTY_MSG = '남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.';
+
+const hasStock = () =>
+  prizes.some((p) => Number(p.remaining) > 0 && Number(p.share) > 0);
+
+const syncSpinButton = (idleMessage) => {
+  if (spinning) {
+    spinBtn.disabled = true;
+    return;
+  }
+  if (!hasStock()) {
+    spinBtn.disabled = true;
+    spinBtn.setAttribute('aria-disabled', 'true');
+    setStatus(STOCK_EMPTY_MSG, true);
+    return;
+  }
+  spinBtn.disabled = false;
+  spinBtn.removeAttribute('aria-disabled');
+  if (idleMessage) setStatus(idleMessage);
+};
+
 const paintWheel = () => {
   const segments = segmentLayout(prizes);
   const { width, height } = canvas;
@@ -184,7 +205,6 @@ const syncAdminIfOpen = () => {
 
 const finishSpinMotion = () => {
   spinning = false;
-  spinBtn.disabled = false;
   if (spinFinish?.type === 'win' && spinFinish.align != null) {
     setWheelDeg(spinFinish.align);
   }
@@ -196,16 +216,19 @@ const finishSpinMotion = () => {
     const pointed = segmentAtPointer(prizes, currentRotation);
     const name = pointed?.name ?? end.name;
     openWinModal(name);
-    setStatus('확인 후 다시 돌릴 수 있습니다.');
+    syncSpinButton(hasStock() ? '확인 후 다시 돌릴 수 있습니다.' : undefined);
     return;
   }
   if (end?.type === 'empty') {
-    setStatus('남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.', true);
+    syncSpinButton();
     return;
   }
   if (end?.type === 'error') {
+    syncSpinButton();
     setStatus(end.message, true);
+    return;
   }
+  syncSpinButton();
 };
 
 const beginStop = (dist) => {
@@ -255,6 +278,10 @@ const refresh = () => {
 
 const runSpin = async () => {
   if (spinning) return;
+  if (!hasStock()) {
+    syncSpinButton();
+    return;
+  }
 
   spinning = true;
   spinBtn.disabled = true;
@@ -537,7 +564,7 @@ document.getElementById('saveAdmin').addEventListener('click', async () => {
     renderAdminForm();
     adminMsg.classList.remove('error');
     adminMsg.textContent = '저장되었습니다.';
-    setStatus('설정이 반영되었습니다.');
+    syncSpinButton('설정이 반영되었습니다.');
   } catch (err) {
     adminMsg.classList.add('error');
     adminMsg.textContent = Error.isError(err) ? err.message : '저장에 실패했습니다.';
@@ -560,13 +587,15 @@ window.addEventListener('compositionupdate', onComposeTap);
 
 refresh();
 syncAdminHash();
+spinBtn.disabled = true;
 setStatus('불러오는 중…');
 loadPrizesFromServer()
   .then(() => {
     refresh();
     if (document.body.classList.contains('admin-open')) renderAdminForm();
-    setStatus('돌리기 버튼을 눌러 주세요.');
+    syncSpinButton('돌리기 버튼을 눌러 주세요.');
   })
   .catch((err) => {
+    spinBtn.disabled = true;
     setStatus(Error.isError(err) ? err.message : '서버에 연결하지 못했습니다.', true);
   });
