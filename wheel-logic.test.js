@@ -12,6 +12,7 @@ import {
   percentsFromTotals,
   parseGroupedInt,
   formatGroupedInt,
+  wrapLabelLines,
   normalizePrizes,
   defaultPrizes,
 } from './wheel-logic.js';
@@ -153,6 +154,28 @@ describe('grouped int display', () => {
     assert.equal(parseGroupedInt('1,234,567'), 1234567);
     assert.equal(parseGroupedInt(''), 0);
     assert.equal(parseGroupedInt('12a34'), 1234);
+  });
+});
+
+describe('wrapLabelLines', () => {
+  const measure = (s) => s.length * 10;
+
+  it('wraps long strings by character without ellipsis', () => {
+    assert.deepEqual(wrapLabelLines('abcdefghij', 30, measure), [
+      'abc',
+      'def',
+      'ghi',
+      'j',
+    ]);
+    assert.ok(!wrapLabelLines('abcdefghij', 30, measure).join('').includes('…'));
+  });
+
+  it('wraps on spaces when they fit', () => {
+    assert.deepEqual(wrapLabelLines('foo bar baz', 70, measure), ['foo bar', 'baz']);
+  });
+
+  it('returns empty for blank text', () => {
+    assert.deepEqual(wrapLabelLines('   ', 40, measure), []);
   });
 });
 

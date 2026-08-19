@@ -139,11 +139,6 @@ export const defaultPrizes = () => [
   { id: 'p4', name: '기념품', share: 40, total: 50, remaining: 50, color: '#f39c12' },
 ];
 
-/**
- * Convert totals into integer percents that sum to 100 (largest remainder).
- * @param {number[]} totals
- * @returns {number[]}
- */
 /** Parse a user-typed integer that may contain grouping commas. */
 export const parseGroupedInt = (value) => {
   const digits = String(value ?? '').replaceAll(/\D/g, '');
@@ -155,6 +150,50 @@ export const parseGroupedInt = (value) => {
 export const formatGroupedInt = (value) => {
   const n = Math.max(0, Math.floor(Number(value) || 0));
   return n.toLocaleString('en-US');
+};
+
+/**
+ * Wrap a label into lines that fit maxWidth. No ellipsis.
+ * Prefers spaces; otherwise breaks by character. measure(text) → width.
+ * @param {string} text
+ * @param {number} maxWidth
+ * @param {(s: string) => number} measure
+ * @returns {string[]}
+ */
+export const wrapLabelLines = (text, maxWidth, measure) => {
+  const src = String(text ?? '').trim();
+  if (!src) return [];
+  if (!(maxWidth > 0) || typeof measure !== 'function') return [src];
+
+  const breakLong = (chunk, lines) => {
+    let cur = '';
+    for (const ch of chunk) {
+      const next = `${cur}${ch}`;
+      if (cur && measure(next) > maxWidth) {
+        lines.push(cur);
+        cur = ch;
+      } else {
+        cur = next;
+      }
+    }
+    return cur;
+  };
+
+  const lines = [];
+  let current = '';
+  for (const word of src.split(/\s+/)) {
+    const trial = current ? `${current} ${word}` : word;
+    if (current && measure(trial) > maxWidth) {
+      lines.push(current);
+      current = measure(word) > maxWidth ? breakLong(word, lines) : word;
+    } else if (!current && measure(word) > maxWidth) {
+      current = breakLong(word, lines);
+    } else {
+      current = trial;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
 };
 
 export const percentsFromTotals = (totals) => {

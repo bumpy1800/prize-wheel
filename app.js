@@ -7,6 +7,7 @@ import {
   percentsFromTotals,
   parseGroupedInt,
   formatGroupedInt,
+  wrapLabelLines,
 } from './wheel-logic.js';
 
 const STORAGE_KEY = 'prize-wheel:v1';
@@ -80,28 +81,48 @@ const paintWheel = () => {
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    const sweep = seg.endDeg - seg.startDeg;
     const mid = (seg.startDeg + seg.endDeg) / 2;
     const midRad = toRad(mid);
-    const lr = r * 0.62;
+    const lr = r * 0.64;
     const lx = cx + Math.cos(midRad) * lr;
     const ly = cy + Math.sin(midRad) * lr;
+    const sweepRad = (sweep * Math.PI) / 180;
+    const maxW = Math.max(18, 2 * lr * Math.sin(sweepRad / 2) * 0.72);
+    const maxH = r * 0.3;
+
     ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r - 10, toRad(seg.startDeg), toRad(seg.endDeg));
+    ctx.closePath();
+    ctx.clip();
+
     ctx.translate(lx, ly);
     ctx.rotate(midRad + Math.PI / 2);
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 22px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const label = seg.name;
-    const maxW = r * 0.42;
-    let text = label;
-    if (ctx.measureText(text).width > maxW) {
-      while (text.length > 1 && ctx.measureText(`${text}…`).width > maxW) {
-        text = text.slice(0, -1);
-      }
-      text = `${text}…`;
+
+    let fontSize = 22;
+    let lines = [];
+    let lineH = fontSize * 1.15;
+    while (fontSize >= 11) {
+      ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+      lineH = fontSize * 1.15;
+      const maxLines = Math.max(1, Math.floor(maxH / lineH));
+      lines = wrapLabelLines(seg.name, maxW, (t) => ctx.measureText(t).width);
+      const widest = lines.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+      if (lines.length <= maxLines && widest <= maxW + 0.5) break;
+      fontSize -= 1;
     }
-    ctx.fillText(text, 0, 0);
+
+    const fit = Math.max(1, Math.floor(maxH / lineH));
+    const shown = lines.slice(0, fit);
+    const totalH = (shown.length - 1) * lineH;
+    shown.forEach((line, i) => {
+      ctx.fillText(line, 0, -totalH / 2 + i * lineH);
+    });
     ctx.restore();
   }
 
