@@ -148,43 +148,97 @@ const closeWinModal = () => {
   if (winDialog.open) winDialog.close();
 };
 
-const SPIN_TRANSITION = 'transform 3.4s cubic-bezier(0.12, 0.75, 0.12, 1)';
-let waitSpinFrame = 0;
+const SPIN_SPEED = 660;
+const MIN_SPIN_MS = 800;
+const STOP_TURNS = 2.25;
+let spinRaf = 0;
+let spinMode = 'idle';
+let spinOrigin = 0;
+let spinStartedAt = 0;
+let stopFromDeg = 0;
+let stopFromAt = 0;
+let stopDist = 0;
+let stopDur = 1;
+/** @type {null | { type: 'win', name: string } | { type: 'empty' } | { type: 'error', message: string }} */
+let spinFinish = null;
+let stopArmed = false;
 
-const setWheelDeg = (deg, animate = false) => {
+const setWheelDeg = (deg) => {
   currentRotation = deg;
-  canvas.style.transition = animate ? SPIN_TRANSITION : 'none';
+  canvas.style.transition = 'none';
   canvas.style.transform = `rotate(${deg}deg)`;
 };
 
-const visualWheelDeg = () => {
-  const m = new DOMMatrix(getComputedStyle(canvas).transform);
-  let deg = Math.atan2(m.b, m.a) * (180 / Math.PI);
-  if (deg < 0) deg += 360;
-  return deg;
+const cancelSpinMotion = () => {
+  cancelAnimationFrame(spinRaf);
+  spinRaf = 0;
+  spinMode = 'idle';
+  stopArmed = false;
 };
 
-const startWaitSpin = () => {
-  cancelAnimationFrame(waitSpinFrame);
-  canvas.style.transition = 'none';
-  const origin = currentRotation;
-  const t0 = performance.now();
-  const tick = (now) => {
-    setWheelDeg(origin + ((now - t0) / 1000) * 540);
-    waitSpinFrame = requestAnimationFrame(tick);
-  };
-  waitSpinFrame = requestAnimationFrame(tick);
+const finishSpinMotion = () => {
+  spinning = false;
+  spinBtn.disabled = false;
+  paintWheel();
+  const end = spinFinish;
+  spinFinish = null;
+  if (end?.type === 'win') {
+    openWinModal(end.name);
+    setStatus('확인 후 다시 돌릴 수 있습니다.');
+    return;
+  }
+  if (end?.type === 'empty') {
+    setStatus('남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.', true);
+    return;
+  }
+  if (end?.type === 'error') {
+    setStatus(end.message, true);
+  }
 };
 
-const stopWaitSpin = () => {
-  cancelAnimationFrame(waitSpinFrame);
-  waitSpinFrame = 0;
-  setWheelDeg(visualWheelDeg());
+const beginStop = (dist) => {
+  stopFromDeg = currentRotation;
+  stopFromAt = performance.now();
+  stopDist = Math.max(40, dist);
+  // cubic ease-out start speed 3 * dist / dur ≈ SPIN_SPEED
+  stopDur = (3 * stopDist) / SPIN_SPEED;
+  spinMode = 'stop';
+  stopArmed = true;
+};
+
+const tickSpin = (now) => {
+  if (spinMode === 'spin') {
+    setWheelDeg(spinOrigin + ((now - spinStartedAt) / 1000) * SPIN_SPEED);
+    if (spinFinish && now - spinStartedAt >= MIN_SPIN_MS && !stopArmed) {
+      if (spinFinish.type === 'win') {
+        const align = spinFinish.align;
+        const curMod = ((currentRotation % 360) + 360) % 360;
+        let add = (align - curMod + 360) % 360;
+        if (add < 12) add += 360;
+        beginStop(add + STOP_TURNS * 360);
+      } else {
+        beginStop(180);
+      }
+    }
+    spinRaf = requestAnimationFrame(tickSpin);
+    return;
+  }
+  if (spinMode === 'stop') {
+    const t = Math.min(1, (now - stopFromAt) / (stopDur * 1000));
+    const eased = 1 - (1 - t) ** 3;
+    setWheelDeg(stopFromDeg + stopDist * eased);
+    if (t < 1) {
+      spinRaf = requestAnimationFrame(tickSpin);
+      return;
+    }
+    cancelSpinMotion();
+    finishSpinMotion();
+  }
 };
 
 const refresh = () => {
   paintWheel();
-  setWheelDeg(currentRotation, false);
+  setWheelDeg(currentRotation);
 };
 
 const runSpin = async () => {
@@ -194,62 +248,39 @@ const runSpin = async () => {
   spinBtn.disabled = true;
   setStatus('돌리는 중…');
   const layoutBefore = segmentLayout(prizes);
-  startWaitSpin();
+  spinFinish = null;
+  stopArmed = false;
+  spinMode = 'spin';
+  spinOrigin = currentRotation;
+  spinStartedAt = performance.now();
+  canvas.style.transition = 'none';
+  cancelAnimationFrame(spinRaf);
+  spinRaf = requestAnimationFrame(tickSpin);
 
-  let outcome;
   try {
-    outcome = await fetchJson('/api/spin', { method: 'POST' });
+    const outcome = await fetchJson('/api/spin', { method: 'POST' });
+    if (outcome.winnerId == null) {
+      prizes = normalizePrizes(outcome.prizes || prizes);
+      spinFinish = { type: 'empty' };
+      return;
+    }
+    const winSeg = layoutBefore.find((s) => s.id === outcome.winnerId);
+    prizes = normalizePrizes(outcome.prizes);
+    if (!winSeg) {
+      spinFinish = { type: 'win', name: outcome.winner?.name ?? '당첨', align: 0 };
+      return;
+    }
+    spinFinish = {
+      type: 'win',
+      name: outcome.winner?.name ?? '당첨',
+      align: targetRotationDeg(winSeg, 0),
+    };
   } catch (err) {
-    stopWaitSpin();
-    spinning = false;
-    spinBtn.disabled = false;
-    setStatus(Error.isError(err) ? err.message : '서버에 연결하지 못했습니다.', true);
-    return;
+    spinFinish = {
+      type: 'error',
+      message: Error.isError(err) ? err.message : '서버에 연결하지 못했습니다.',
+    };
   }
-
-  stopWaitSpin();
-
-  if (outcome.winnerId == null) {
-    spinning = false;
-    spinBtn.disabled = false;
-    prizes = normalizePrizes(outcome.prizes || prizes);
-    refresh();
-    setStatus('남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.', true);
-    return;
-  }
-
-  const winSeg = layoutBefore.find((s) => s.id === outcome.winnerId);
-  prizes = normalizePrizes(outcome.prizes);
-
-  if (!winSeg) {
-    spinning = false;
-    spinBtn.disabled = false;
-    refresh();
-    openWinModal(outcome.winner?.name ?? '당첨');
-    return;
-  }
-
-  const extraSpins = 4 + Math.floor(Math.random() * 2);
-  const align = targetRotationDeg(winSeg, 0);
-  const curMod = ((currentRotation % 360) + 360) % 360;
-  let add = (align - curMod + 360) % 360;
-  if (add < 20) add += 360;
-  const finalRot = currentRotation + add + extraSpins * 360;
-
-  void canvas.offsetWidth;
-  setWheelDeg(finalRot, true);
-
-  const onEnd = (ev) => {
-    if (ev.propertyName && ev.propertyName !== 'transform') return;
-    canvas.removeEventListener('transitionend', onEnd);
-    spinning = false;
-    spinBtn.disabled = false;
-    const name = outcome.winner?.name ?? '당첨';
-    openWinModal(name);
-    setStatus('확인 후 다시 돌릴 수 있습니다.');
-    paintWheel();
-  };
-  canvas.addEventListener('transitionend', onEnd);
 };
 
 /* —— Admin —— */
@@ -490,7 +521,7 @@ document.getElementById('saveAdmin').addEventListener('click', async () => {
   }
   try {
     await persistPrizes();
-    setWheelDeg(((currentRotation % 360) + 360) % 360, false);
+    setWheelDeg(((currentRotation % 360) + 360) % 360);
     refresh();
     renderAdminForm();
     adminMsg.classList.remove('error');
@@ -506,7 +537,7 @@ document.getElementById('resetDefaults').addEventListener('click', async () => {
   prizes = defaultPrizes();
   try {
     await persistPrizes();
-    setWheelDeg(0, false);
+    setWheelDeg(0);
     refresh();
     renderAdminForm();
     adminMsg.classList.remove('error');
