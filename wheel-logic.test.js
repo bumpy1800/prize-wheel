@@ -10,6 +10,8 @@ import {
   resolveSpin,
   segmentLayout,
   percentsFromTotals,
+  parseGroupedInt,
+  formatGroupedInt,
   normalizePrizes,
   defaultPrizes,
 } from './wheel-logic.js';
@@ -136,6 +138,21 @@ describe('segmentLayout', () => {
     assert.equal(segs[0].remaining, 0);
     assert.equal(segs[0].endDeg - segs[0].startDeg, 180);
     assert.equal(segs[1].endDeg - segs[1].startDeg, 180);
+  });
+});
+
+describe('grouped int display', () => {
+  it('formats with thousands commas', () => {
+    assert.equal(formatGroupedInt(1000), '1,000');
+    assert.equal(formatGroupedInt(1234567), '1,234,567');
+    assert.equal(formatGroupedInt(0), '0');
+  });
+
+  it('parses comma-formatted input', () => {
+    assert.equal(parseGroupedInt('1,000'), 1000);
+    assert.equal(parseGroupedInt('1,234,567'), 1234567);
+    assert.equal(parseGroupedInt(''), 0);
+    assert.equal(parseGroupedInt('12a34'), 1234);
   });
 });
 

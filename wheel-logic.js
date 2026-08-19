@@ -144,6 +144,19 @@ export const defaultPrizes = () => [
  * @param {number[]} totals
  * @returns {number[]}
  */
+/** Parse a user-typed integer that may contain grouping commas. */
+export const parseGroupedInt = (value) => {
+  const digits = String(value ?? '').replaceAll(/\D/g, '');
+  if (!digits) return 0;
+  return Number(digits);
+};
+
+/** Display an integer with thousands separators, e.g. 1000 → "1,000". */
+export const formatGroupedInt = (value) => {
+  const n = Math.max(0, Math.floor(Number(value) || 0));
+  return n.toLocaleString('en-US');
+};
+
 export const percentsFromTotals = (totals) => {
   const nums = (Array.isArray(totals) ? totals : []).map((t) =>
     Math.max(0, Number(t) || 0),

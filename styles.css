@@ -274,6 +274,11 @@ body.admin-open #admin {
   width: 4.5rem;
 }
 
+.admin-table input.grouped-int {
+  width: 7rem;
+  text-align: right;
+}
+
 .admin-table .name-cell input {
   min-width: 6rem;
 }

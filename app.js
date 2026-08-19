@@ -5,6 +5,8 @@ import {
   normalizePrizes,
   defaultPrizes,
   percentsFromTotals,
+  parseGroupedInt,
+  formatGroupedInt,
 } from './wheel-logic.js';
 
 const STORAGE_KEY = 'prize-wheel:v1';
@@ -221,12 +223,16 @@ const renderAdminForm = () => {
 
       const totalTd = document.createElement('td');
       const totalIn = document.createElement('input');
-      totalIn.type = 'number';
+      totalIn.type = 'text';
+      totalIn.inputMode = 'numeric';
+      totalIn.autocomplete = 'off';
       totalIn.dataset.field = 'total';
-      totalIn.min = '0';
-      totalIn.step = '1';
-      totalIn.value = String(p.total);
-      totalIn.addEventListener('input', () => fillFromTotals());
+      totalIn.className = 'grouped-int';
+      totalIn.value = formatGroupedInt(p.total);
+      totalIn.addEventListener('input', () => {
+        formatTotalInput(totalIn);
+        fillFromTotals();
+      });
       totalTd.append(totalIn);
 
       const remTd = document.createElement('td');
@@ -264,13 +270,29 @@ const renderAdminForm = () => {
   );
 };
 
+const formatTotalInput = (input) => {
+  const raw = input.value;
+  const caret = input.selectionStart ?? raw.length;
+  const digitsBefore = raw.slice(0, caret).replaceAll(/\D/g, '').length;
+  const digits = raw.replaceAll(/\D/g, '');
+  const formatted = digits === '' ? '' : formatGroupedInt(digits);
+  input.value = formatted;
+  let pos = 0;
+  let seen = 0;
+  while (pos < formatted.length && seen < digitsBefore) {
+    if (/\d/.test(formatted[pos])) seen += 1;
+    pos += 1;
+  }
+  input.setSelectionRange(pos, pos);
+};
+
 const fillFromTotals = () => {
   const rows = [...adminBody.querySelectorAll('tr')];
   if (rows.length === 0) return;
   const totals = rows.map((tr) => {
     const totalIn = tr.querySelector('[data-field="total"]');
     const remIn = tr.querySelector('[data-field="remaining"]');
-    const total = Math.max(0, Math.floor(Number(totalIn.value) || 0));
+    const total = parseGroupedInt(totalIn.value);
     remIn.value = String(total);
     return total;
   });
@@ -289,7 +311,7 @@ const readAdminForm = () => {
         id: prizes[i]?.id || `p${i + 1}-${Date.now()}`,
         name: get('name').value,
         share: Number(get('share').value),
-        total: Number(get('total').value),
+        total: parseGroupedInt(get('total').value),
         remaining: Number(get('remaining').value),
         color: get('color').value,
       };
