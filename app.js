@@ -361,9 +361,6 @@ const renderAdminForm = () => {
       remIn.dataset.field = 'remaining';
       remIn.min = '0';
       remIn.step = '1';
-      remIn.readOnly = true;
-      remIn.tabIndex = -1;
-      remIn.classList.add('readonly');
       remIn.value = String(p.remaining);
       remTd.append(remIn);
 
@@ -547,19 +544,13 @@ document.getElementById('saveAdmin').addEventListener('click', async () => {
   }
 });
 
-document.getElementById('resetDefaults').addEventListener('click', async () => {
+document.getElementById('resetDefaults').addEventListener('click', () => {
   prizes = defaultPrizes();
-  try {
-    await persistPrizes();
-    setWheelDeg(0);
-    refresh();
-    renderAdminForm();
-    adminMsg.classList.remove('error');
-    adminMsg.textContent = '기본 경품으로 복원했습니다.';
-  } catch (err) {
-    adminMsg.classList.add('error');
-    adminMsg.textContent = Error.isError(err) ? err.message : '복원에 실패했습니다.';
-  }
+  setWheelDeg(0);
+  refresh();
+  renderAdminForm();
+  adminMsg.classList.remove('error');
+  adminMsg.textContent = '기본값으로 바꿨습니다. 저장을 눌러 DB에 반영하세요.';
 });
 
 document.getElementById('closeAdmin').addEventListener('click', closeAdmin);

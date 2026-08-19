@@ -297,12 +297,6 @@ body.admin-open #admin {
   width: 4.5rem;
 }
 
-.admin-table input.readonly {
-  opacity: 0.7;
-  cursor: default;
-  background: #0c1020;
-}
-
 .admin-table input.grouped-int {
   width: 7rem;
   text-align: right;
