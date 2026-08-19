@@ -1,13 +1,13 @@
 import {
   resolveSpin,
   segmentLayout,
-  targetRotationDeg,
   normalizePrizes,
   defaultPrizes,
   percentsFromTotals,
   parseGroupedInt,
   formatGroupedInt,
   wrapLabelLines,
+  rotationToPointAt,
 } from './wheel-logic.js';
 
 /** @type {import('./wheel-logic.js').Prize[]} */
@@ -150,7 +150,7 @@ const closeWinModal = () => {
 
 const SPIN_SPEED = 660;
 const MIN_SPIN_MS = 800;
-const STOP_TURNS = 2.25;
+const STOP_TURNS = 3;
 let spinRaf = 0;
 let spinMode = 'idle';
 let spinOrigin = 0;
@@ -176,10 +176,18 @@ const cancelSpinMotion = () => {
   stopArmed = false;
 };
 
+const syncAdminIfOpen = () => {
+  if (document.body.classList.contains('admin-open')) renderAdminForm();
+};
+
 const finishSpinMotion = () => {
   spinning = false;
   spinBtn.disabled = false;
+  if (spinFinish?.type === 'win' && spinFinish.align != null) {
+    setWheelDeg(spinFinish.align);
+  }
   paintWheel();
+  syncAdminIfOpen();
   const end = spinFinish;
   spinFinish = null;
   if (end?.type === 'win') {
@@ -261,19 +269,22 @@ const runSpin = async () => {
     const outcome = await fetchJson('/api/spin', { method: 'POST' });
     if (outcome.winnerId == null) {
       prizes = normalizePrizes(outcome.prizes || prizes);
+      syncAdminIfOpen();
       spinFinish = { type: 'empty' };
       return;
     }
     const winSeg = layoutBefore.find((s) => s.id === outcome.winnerId);
     prizes = normalizePrizes(outcome.prizes);
+    syncAdminIfOpen();
     if (!winSeg) {
-      spinFinish = { type: 'win', name: outcome.winner?.name ?? '당첨', align: 0 };
+      spinFinish = { type: 'win', name: outcome.winner?.name ?? '당첨', align: currentRotation };
       return;
     }
+    const align = rotationToPointAt(winSeg.midDeg);
     spinFinish = {
       type: 'win',
       name: outcome.winner?.name ?? '당첨',
-      align: targetRotationDeg(winSeg, 0),
+      align,
     };
   } catch (err) {
     spinFinish = {

@@ -9,6 +9,10 @@ import {
   applyWin,
   resolveSpin,
   segmentLayout,
+  pointerLayoutDeg,
+  rotationToPointAt,
+  segmentAtPointer,
+  targetRotationDeg,
   percentsFromTotals,
   parseGroupedInt,
   formatGroupedInt,
@@ -125,6 +129,39 @@ describe('resolveSpin', () => {
     const result = resolveSpin(prizes, () => 0.5);
     assert.equal(result.winnerId, null);
     assert.equal(result.winner, null);
+  });
+});
+
+describe('pointer alignment', () => {
+  const prizes = [
+    { id: 'a', name: 'A', share: 50, total: 1, remaining: 1 },
+    { id: 'b', name: 'B', share: 50, total: 1, remaining: 1 },
+  ];
+
+  it('maps rotation so the pointer hits the chosen layout angle', () => {
+    assert.equal(pointerLayoutDeg(rotationToPointAt(45)), 45);
+    assert.equal(pointerLayoutDeg(0), 0);
+    assert.equal(pointerLayoutDeg(90), 270);
+  });
+
+  it('lands targetRotationDeg on the same segment', () => {
+    const segs = segmentLayout(prizes);
+    const rot = targetRotationDeg(segs[1], 0, () => 0.5);
+    assert.equal(segmentAtPointer(prizes, rot).id, 'b');
+    assert.equal(segmentAtPointer(prizes, rot + 3 * 360).id, 'b');
+  });
+
+  it('fractional extra turns shift the pointer off the winner', () => {
+    const four = [
+      { id: 'a', name: 'A', share: 25, total: 1, remaining: 1 },
+      { id: 'b', name: 'B', share: 25, total: 1, remaining: 1 },
+      { id: 'c', name: 'C', share: 25, total: 1, remaining: 1 },
+      { id: 'd', name: 'D', share: 25, total: 1, remaining: 1 },
+    ];
+    const segs = segmentLayout(four);
+    const rot = rotationToPointAt(segs[1].midDeg);
+    assert.equal(segmentAtPointer(four, rot).id, 'b');
+    assert.notEqual(segmentAtPointer(four, rot + 2.25 * 360).id, 'b');
   });
 });
 

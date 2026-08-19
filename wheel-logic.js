@@ -109,14 +109,28 @@ export const segmentLayout = (prizes) => {
  */
 export const targetRotationDeg = (segment, extraSpins = 5, rng = Math.random) => {
   const span = segment.endDeg - segment.startDeg;
-  // Point somewhere in the middle 60% of the segment to avoid borders
   const pad = span * 0.2;
   const within = segment.startDeg + pad + rng() * Math.max(0, span - pad * 2);
-  // Canvas/CSS: rotation increases clockwise; pointer fixed at top.
-  // Segment at `within` (from 0 at top, clockwise) should end under pointer:
-  // finalRotation % 360 === (360 - within) % 360
-  const align = (360 - within) % 360;
-  return extraSpins * 360 + align;
+  return extraSpins * 360 + rotationToPointAt(within);
+};
+
+/** Layout degrees (CW from top) sitting under the 12 o'clock pointer. */
+export const pointerLayoutDeg = (rotationDeg) => {
+  const r = ((Number(rotationDeg) % 360) + 360) % 360;
+  return (360 - r) % 360;
+};
+
+/** CSS clockwise rotation so `layoutDeg` (CW from top) sits under the pointer. */
+export const rotationToPointAt = (layoutDeg) => {
+  const within = ((Number(layoutDeg) % 360) + 360) % 360;
+  return (360 - within) % 360;
+};
+
+export const segmentAtPointer = (prizes, rotationDeg) => {
+  const layout = segmentLayout(prizes);
+  if (layout.length === 0) return null;
+  const at = pointerLayoutDeg(rotationDeg);
+  return layout.find((s) => at >= s.startDeg && at < s.endDeg) ?? layout.at(-1);
 };
 
 export const DEFAULT_COLORS = [
