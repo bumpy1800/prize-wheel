@@ -10,20 +10,8 @@ import {
   wrapLabelLines,
 } from './wheel-logic.js';
 
-const STORAGE_KEY = 'prize-wheel:v1';
-
-const loadPrizesFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultPrizes();
-    return normalizePrizes(JSON.parse(raw));
-  } catch {
-    return defaultPrizes();
-  }
-};
-
 /** @type {import('./wheel-logic.js').Prize[]} */
-let prizes = loadPrizesFromStorage();
+let prizes = defaultPrizes();
 let spinning = false;
 let currentRotation = 0;
 
@@ -37,8 +25,25 @@ const adminEl = document.getElementById('admin');
 const adminBody = document.getElementById('adminBody');
 const adminMsg = document.getElementById('adminMsg');
 
-const savePrizes = () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prizes));
+const fetchJson = async (url, options) => {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `요청 실패 (${res.status})`);
+  return data;
+};
+
+const loadPrizesFromServer = async () => {
+  const data = await fetchJson('/api/prizes');
+  prizes = normalizePrizes(data.prizes);
+};
+
+const persistPrizes = async () => {
+  const data = await fetchJson('/api/prizes', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prizes }),
+  });
+  prizes = normalizePrizes(data.prizes);
 };
 
 const setStatus = (msg, warn = false) => {
@@ -148,28 +153,43 @@ const refresh = () => {
   canvas.style.transform = `rotate(${currentRotation}deg)`;
 };
 
-const runSpin = () => {
+const runSpin = async () => {
   if (spinning) return;
-
-  const layoutBefore = segmentLayout(prizes);
-  const outcome = resolveSpin(prizes);
-  if (outcome.winnerId == null) {
-    setStatus('남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.', true);
-    return;
-  }
-
-  const winSeg = layoutBefore.find((s) => s.id === outcome.winnerId);
-  if (!winSeg) {
-    setStatus('경품 영역을 찾을 수 없습니다.', true);
-    return;
-  }
 
   spinning = true;
   spinBtn.disabled = true;
   setStatus('돌리는 중…');
 
-  prizes = outcome.prizes;
-  savePrizes();
+  let outcome;
+  try {
+    outcome = await fetchJson('/api/spin', { method: 'POST' });
+  } catch (err) {
+    spinning = false;
+    spinBtn.disabled = false;
+    setStatus(Error.isError(err) ? err.message : '서버에 연결하지 못했습니다.', true);
+    return;
+  }
+
+  if (outcome.winnerId == null) {
+    spinning = false;
+    spinBtn.disabled = false;
+    prizes = normalizePrizes(outcome.prizes || prizes);
+    refresh();
+    setStatus('남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.', true);
+    return;
+  }
+
+  const layoutBefore = segmentLayout(prizes);
+  const winSeg = layoutBefore.find((s) => s.id === outcome.winnerId);
+  prizes = normalizePrizes(outcome.prizes);
+
+  if (!winSeg) {
+    spinning = false;
+    spinBtn.disabled = false;
+    refresh();
+    openWinModal(outcome.winner?.name ?? '당첨');
+    return;
+  }
 
   const extraSpins = 5 + Math.floor(Math.random() * 3);
   const align = targetRotationDeg(winSeg, 0);
@@ -282,7 +302,6 @@ const renderAdminForm = () => {
       delBtn.textContent = '삭제';
       delBtn.addEventListener('click', () => {
         prizes = prizes.filter((_, i) => i !== index);
-        savePrizes();
         refresh();
         renderAdminForm();
       });
@@ -392,14 +411,12 @@ export const __test = {
   getPrizes: () => prizes.map((p) => ({ ...p })),
   setPrizes: (next) => {
     prizes = normalizePrizes(next);
-    savePrizes();
     refresh();
   },
   resolveSpin,
   runSpin,
   openAdmin,
   closeAdmin,
-  STORAGE_KEY,
 };
 
 spinBtn.addEventListener('click', runSpin);
@@ -420,12 +437,11 @@ document.getElementById('addPrize').addEventListener('click', () => {
       color: '#9b59b6',
     },
   ];
-  savePrizes();
   refresh();
   renderAdminForm();
 });
 
-document.getElementById('saveAdmin').addEventListener('click', () => {
+document.getElementById('saveAdmin').addEventListener('click', async () => {
   prizes = readAdminForm();
   if (prizes.length === 0) {
     adminMsg.textContent = '경품이 하나 이상 필요합니다.';
@@ -438,23 +454,33 @@ document.getElementById('saveAdmin').addEventListener('click', () => {
     adminMsg.classList.add('error');
     return;
   }
-  savePrizes();
-  currentRotation = currentRotation % 360;
-  refresh();
-  renderAdminForm();
-  adminMsg.classList.remove('error');
-  adminMsg.textContent = '저장되었습니다.';
-  setStatus('설정이 반영되었습니다.');
+  try {
+    await persistPrizes();
+    currentRotation = currentRotation % 360;
+    refresh();
+    renderAdminForm();
+    adminMsg.classList.remove('error');
+    adminMsg.textContent = '저장되었습니다.';
+    setStatus('설정이 반영되었습니다.');
+  } catch (err) {
+    adminMsg.classList.add('error');
+    adminMsg.textContent = Error.isError(err) ? err.message : '저장에 실패했습니다.';
+  }
 });
 
-document.getElementById('resetDefaults').addEventListener('click', () => {
+document.getElementById('resetDefaults').addEventListener('click', async () => {
   prizes = defaultPrizes();
-  savePrizes();
-  currentRotation = 0;
-  refresh();
-  renderAdminForm();
-  adminMsg.classList.remove('error');
-  adminMsg.textContent = '기본 경품으로 복원했습니다.';
+  try {
+    await persistPrizes();
+    currentRotation = 0;
+    refresh();
+    renderAdminForm();
+    adminMsg.classList.remove('error');
+    adminMsg.textContent = '기본 경품으로 복원했습니다.';
+  } catch (err) {
+    adminMsg.classList.add('error');
+    adminMsg.textContent = Error.isError(err) ? err.message : '복원에 실패했습니다.';
+  }
 });
 
 document.getElementById('closeAdmin').addEventListener('click', closeAdmin);
@@ -464,4 +490,13 @@ window.addEventListener('compositionupdate', onComposeTap);
 
 refresh();
 syncAdminHash();
-setStatus('돌리기 버튼을 눌러 주세요.');
+setStatus('불러오는 중…');
+loadPrizesFromServer()
+  .then(() => {
+    refresh();
+    if (document.body.classList.contains('admin-open')) renderAdminForm();
+    setStatus('돌리기 버튼을 눌러 주세요.');
+  })
+  .catch((err) => {
+    setStatus(Error.isError(err) ? err.message : '서버에 연결하지 못했습니다.', true);
+  });

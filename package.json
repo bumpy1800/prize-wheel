@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Exhibition prize wheel — static web game",
   "scripts": {
-    "test": "node --test wheel-logic.test.js",
+    "test": "node --test wheel-logic.test.js lib/store.test.js",
     "start": "npx --yes serve ."
+  },
+  "dependencies": {
+    "mongodb": "^6.19.0"
   }
 }

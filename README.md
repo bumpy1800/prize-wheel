@@ -1,17 +1,17 @@
 # 돌려돌려 돌림판
 
-박람회·부스용 **경품 돌림판** 정적 웹 게임입니다. 빌드 없이 `index.html`을 열거나 정적 서버로 실행하면 됩니다.
+박람회·부스용 **경품 돌림판**. 설정·재고는 MongoDB에 공유 저장됩니다.
 
 ## 실행
 
+Atlas 연결 문자열이 필요합니다. `.env.example`을 참고해 Vercel에 `MONGODB_URI`를 넣으세요.
+
 ```bash
-# 프로젝트 폴더에서
-npx --yes serve .
-# 또는
-python3 -m http.server 5173
+npm install
+npx vercel dev
 ```
 
-브라우저에서 표시된 주소로 접속하세요. (`file://`도 동작하지만, 일부 브라우저는 ES module 제한이 있을 수 있어 로컬 서버를 권장합니다.)
+로컬만 정적 미리보기(`npx serve .`)하면 API가 없어 재고가 저장되지 않습니다.
 
 ## 플레이
 
@@ -40,12 +40,12 @@ python3 -m http.server 5173
 - 영역 **색상**
 - 추가·삭제·저장, 기본값 복원
 
-설정은 이 브라우저의 `localStorage` 키 `prize-wheel:v1`에 저장됩니다.
+설정·남은 수량은 MongoDB `prize-wheel.configs` 문서(`_id: "default"`)에 저장됩니다. 기기 간에 재고가 공유됩니다.
 
 ## 테스트
 
 ```bash
-node --test wheel-logic.test.js
+npm test
 ```
 
 ## 파일
@@ -55,5 +55,8 @@ node --test wheel-logic.test.js
 | `index.html` | 플레이어 + 숨은 관리자 마크업 |
 | `styles.css` | 레이아웃·휠·관리자 스타일 |
 | `wheel-logic.js` | 가중 추첨·재고 차감 (순수 로직) |
-| `app.js` | 휠 그리기·회전·UI·저장 |
-| `wheel-logic.test.js` | 추첨/재고 단위 테스트 |
+| `app.js` | 휠 그리기·회전·UI |
+| `api/prizes.js` | GET/PUT 경품 설정 |
+| `api/spin.js` | POST 추첨 + 재고 차감 |
+| `lib/mongo.js` | MongoDB 클라이언트 |
+| `lib/store.js` | 설정 로드/저장/스핀 |
