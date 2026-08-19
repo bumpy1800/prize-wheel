@@ -9,6 +9,7 @@ import {
   applyWin,
   resolveSpin,
   segmentLayout,
+  percentsFromTotals,
   normalizePrizes,
   defaultPrizes,
 } from './wheel-logic.js';
@@ -135,6 +136,24 @@ describe('segmentLayout', () => {
     assert.equal(segs[0].remaining, 0);
     assert.equal(segs[0].endDeg - segs[0].startDeg, 180);
     assert.equal(segs[1].endDeg - segs[1].startDeg, 180);
+  });
+});
+
+describe('percentsFromTotals', () => {
+  it('splits shares proportional to totals and sums to 100', () => {
+    const p = percentsFromTotals([1, 1, 2]);
+    assert.deepEqual(p, [25, 25, 50]);
+    assert.equal(p.reduce((a, b) => a + b, 0), 100);
+  });
+
+  it('uses largest remainder so odd splits still sum to 100', () => {
+    const p = percentsFromTotals([1, 1, 1]);
+    assert.equal(p.reduce((a, b) => a + b, 0), 100);
+    assert.deepEqual(p.toSorted((a, b) => a - b), [33, 33, 34]);
+  });
+
+  it('returns zeros when all totals are 0', () => {
+    assert.deepEqual(percentsFromTotals([0, 0]), [0, 0]);
   });
 });
 

@@ -4,6 +4,7 @@ import {
   targetRotationDeg,
   normalizePrizes,
   defaultPrizes,
+  percentsFromTotals,
 } from './wheel-logic.js';
 
 const STORAGE_KEY = 'prize-wheel:v1';
@@ -225,6 +226,7 @@ const renderAdminForm = () => {
       totalIn.min = '0';
       totalIn.step = '1';
       totalIn.value = String(p.total);
+      totalIn.addEventListener('input', () => fillFromTotals());
       totalTd.append(totalIn);
 
       const remTd = document.createElement('td');
@@ -260,6 +262,22 @@ const renderAdminForm = () => {
       return tr;
     }),
   );
+};
+
+const fillFromTotals = () => {
+  const rows = [...adminBody.querySelectorAll('tr')];
+  if (rows.length === 0) return;
+  const totals = rows.map((tr) => {
+    const totalIn = tr.querySelector('[data-field="total"]');
+    const remIn = tr.querySelector('[data-field="remaining"]');
+    const total = Math.max(0, Math.floor(Number(totalIn.value) || 0));
+    remIn.value = String(total);
+    return total;
+  });
+  const percents = percentsFromTotals(totals);
+  rows.forEach((tr, i) => {
+    tr.querySelector('[data-field="share"]').value = String(percents[i] ?? 0);
+  });
 };
 
 const readAdminForm = () => {

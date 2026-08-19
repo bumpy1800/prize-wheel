@@ -140,6 +140,34 @@ export const defaultPrizes = () => [
 ];
 
 /**
+ * Convert totals into integer percents that sum to 100 (largest remainder).
+ * @param {number[]} totals
+ * @returns {number[]}
+ */
+export const percentsFromTotals = (totals) => {
+  const nums = (Array.isArray(totals) ? totals : []).map((t) =>
+    Math.max(0, Number(t) || 0),
+  );
+  if (nums.length === 0) return [];
+  const sum = nums.reduce((a, b) => a + b, 0);
+  if (!(sum > 0)) return nums.map(() => 0);
+
+  const raw = nums.map((n) => (n / sum) * 100);
+  const floors = raw.map((x) => Math.floor(x));
+  let leftover = 100 - floors.reduce((a, b) => a + b, 0);
+  const order = raw
+    .map((x, i) => ({ i, frac: x - floors[i] }))
+    .toSorted((a, b) => b.frac - a.frac || a.i - b.i);
+  const out = [...floors];
+  for (const { i } of order) {
+    if (leftover <= 0) break;
+    out[i] += 1;
+    leftover -= 1;
+  }
+  return out;
+};
+
+/**
  * Normalize admin form prizes: ensure ids, clamp numbers.
  * @param {Partial<Prize>[]} raw
  * @returns {Prize[]}
