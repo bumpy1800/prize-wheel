@@ -148,9 +148,43 @@ const closeWinModal = () => {
   if (winDialog.open) winDialog.close();
 };
 
+const SPIN_TRANSITION = 'transform 3.4s cubic-bezier(0.12, 0.75, 0.12, 1)';
+let waitSpinFrame = 0;
+
+const setWheelDeg = (deg, animate = false) => {
+  currentRotation = deg;
+  canvas.style.transition = animate ? SPIN_TRANSITION : 'none';
+  canvas.style.transform = `rotate(${deg}deg)`;
+};
+
+const visualWheelDeg = () => {
+  const m = new DOMMatrix(getComputedStyle(canvas).transform);
+  let deg = Math.atan2(m.b, m.a) * (180 / Math.PI);
+  if (deg < 0) deg += 360;
+  return deg;
+};
+
+const startWaitSpin = () => {
+  cancelAnimationFrame(waitSpinFrame);
+  canvas.style.transition = 'none';
+  const origin = currentRotation;
+  const t0 = performance.now();
+  const tick = (now) => {
+    setWheelDeg(origin + ((now - t0) / 1000) * 540);
+    waitSpinFrame = requestAnimationFrame(tick);
+  };
+  waitSpinFrame = requestAnimationFrame(tick);
+};
+
+const stopWaitSpin = () => {
+  cancelAnimationFrame(waitSpinFrame);
+  waitSpinFrame = 0;
+  setWheelDeg(visualWheelDeg());
+};
+
 const refresh = () => {
   paintWheel();
-  canvas.style.transform = `rotate(${currentRotation}deg)`;
+  setWheelDeg(currentRotation, false);
 };
 
 const runSpin = async () => {
@@ -159,16 +193,21 @@ const runSpin = async () => {
   spinning = true;
   spinBtn.disabled = true;
   setStatus('돌리는 중…');
+  const layoutBefore = segmentLayout(prizes);
+  startWaitSpin();
 
   let outcome;
   try {
     outcome = await fetchJson('/api/spin', { method: 'POST' });
   } catch (err) {
+    stopWaitSpin();
     spinning = false;
     spinBtn.disabled = false;
     setStatus(Error.isError(err) ? err.message : '서버에 연결하지 못했습니다.', true);
     return;
   }
+
+  stopWaitSpin();
 
   if (outcome.winnerId == null) {
     spinning = false;
@@ -179,7 +218,6 @@ const runSpin = async () => {
     return;
   }
 
-  const layoutBefore = segmentLayout(prizes);
   const winSeg = layoutBefore.find((s) => s.id === outcome.winnerId);
   prizes = normalizePrizes(outcome.prizes);
 
@@ -191,19 +229,15 @@ const runSpin = async () => {
     return;
   }
 
-  const extraSpins = 5 + Math.floor(Math.random() * 3);
+  const extraSpins = 4 + Math.floor(Math.random() * 2);
   const align = targetRotationDeg(winSeg, 0);
   const curMod = ((currentRotation % 360) + 360) % 360;
   let add = (align - curMod + 360) % 360;
   if (add < 20) add += 360;
   const finalRot = currentRotation + add + extraSpins * 360;
 
-  canvas.style.transition = 'none';
-  canvas.style.transform = `rotate(${currentRotation}deg)`;
   void canvas.offsetWidth;
-  canvas.style.transition = 'transform 4.2s cubic-bezier(0.12, 0.75, 0.12, 1)';
-  canvas.style.transform = `rotate(${finalRot}deg)`;
-  currentRotation = finalRot;
+  setWheelDeg(finalRot, true);
 
   const onEnd = (ev) => {
     if (ev.propertyName && ev.propertyName !== 'transform') return;
@@ -456,7 +490,7 @@ document.getElementById('saveAdmin').addEventListener('click', async () => {
   }
   try {
     await persistPrizes();
-    currentRotation = currentRotation % 360;
+    setWheelDeg(((currentRotation % 360) + 360) % 360, false);
     refresh();
     renderAdminForm();
     adminMsg.classList.remove('error');
@@ -472,7 +506,7 @@ document.getElementById('resetDefaults').addEventListener('click', async () => {
   prizes = defaultPrizes();
   try {
     await persistPrizes();
-    currentRotation = 0;
+    setWheelDeg(0, false);
     refresh();
     renderAdminForm();
     adminMsg.classList.remove('error');
