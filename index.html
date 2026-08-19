@@ -25,10 +25,7 @@
           <canvas id="wheel" width="640" height="640" role="img" aria-label="경품 돌림판"></canvas>
         </div>
         <div class="hub" id="hub">
-          <div>
-            <div class="label">당첨</div>
-            <p class="result empty" id="resultText">준비</p>
-          </div>
+          <div class="label">당첨</div>
         </div>
       </div>
 
@@ -70,6 +67,12 @@
         <p id="adminMsg" role="status"></p>
       </section>
     </main>
+
+    <dialog id="winDialog" aria-labelledby="winTitle">
+      <p class="win-kicker" id="winTitle">당첨!</p>
+      <p class="win-name" id="winName"></p>
+      <button type="button" id="winClose">확인</button>
+    </dialog>
 
     <script type="module" src="./app.js"></script>
   </body>

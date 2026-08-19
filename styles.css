@@ -115,45 +115,60 @@ h1 {
 }
 
 .hub .label {
-  font-size: 0.75rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hub .result {
-  margin: 0.2rem 0 0;
-  font-size: clamp(1.1rem, 3.5vw, 1.55rem);
+  font-size: 1.05rem;
   font-weight: 800;
-  line-height: 1.25;
-  word-break: keep-all;
   color: var(--accent);
-  text-shadow: 0 0 18px rgba(255, 209, 102, 0.35);
-  max-width: 100%;
+  letter-spacing: 0.12em;
 }
 
-.hub .result.empty {
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 1rem;
+#winDialog {
+  width: min(90vw, 520px);
+  max-height: min(80dvh, 560px);
+  margin: auto;
+  border: none;
+  border-radius: 24px;
+  padding: 2rem 1.4rem 1.4rem;
+  background: linear-gradient(180deg, #2b3150, #151826);
+  color: var(--text);
+  text-align: center;
+  box-shadow: var(--shadow), 0 0 0 3px #ffd16666;
 }
 
-.hub .result.win-pop {
-  animation: pop 0.45s ease-out;
+#winDialog::backdrop {
+  background: rgba(8, 10, 22, 0.72);
 }
 
-@keyframes pop {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.2;
-  }
-  60% {
-    transform: scale(1.12);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+.win-kicker {
+  margin: 0 0 0.7rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.win-name {
+  margin: 0 0 1.4rem;
+  font-size: clamp(1.55rem, 5.2vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-height: 46dvh;
+  overflow-y: auto;
+}
+
+#winClose {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  min-width: 8.5rem;
+  padding: 0.75rem 1.4rem;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1a1020;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffe08a, #ffc233 45%, #f0a500);
 }
 
 .controls {

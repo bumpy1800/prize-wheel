@@ -30,7 +30,8 @@ let currentRotation = 0;
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
 const spinBtn = document.getElementById('spinBtn');
-const resultText = document.getElementById('resultText');
+const winDialog = document.getElementById('winDialog');
+const winName = document.getElementById('winName');
 const statusEl = document.getElementById('status');
 const adminEl = document.getElementById('admin');
 const adminBody = document.getElementById('adminBody');
@@ -133,12 +134,13 @@ const paintWheel = () => {
   ctx.stroke();
 };
 
-const showResult = (name, isEmpty = false) => {
-  resultText.textContent = name;
-  resultText.classList.toggle('empty', isEmpty);
-  resultText.classList.remove('win-pop');
-  void resultText.offsetWidth;
-  if (!isEmpty) resultText.classList.add('win-pop');
+const openWinModal = (name) => {
+  winName.textContent = name;
+  if (!winDialog.open) winDialog.showModal();
+};
+
+const closeWinModal = () => {
+  if (winDialog.open) winDialog.close();
 };
 
 const refresh = () => {
@@ -153,7 +155,6 @@ const runSpin = () => {
   const outcome = resolveSpin(prizes);
   if (outcome.winnerId == null) {
     setStatus('남은 경품이 없습니다. 관리자에서 수량을 채워 주세요.', true);
-    showResult('소진', true);
     return;
   }
 
@@ -166,7 +167,6 @@ const runSpin = () => {
   spinning = true;
   spinBtn.disabled = true;
   setStatus('돌리는 중…');
-  showResult('…', true);
 
   prizes = outcome.prizes;
   savePrizes();
@@ -191,8 +191,8 @@ const runSpin = () => {
     spinning = false;
     spinBtn.disabled = false;
     const name = outcome.winner?.name ?? '당첨';
-    showResult(name, false);
-    setStatus(`🎉 ${name} 당첨! 다시 돌릴 수 있습니다.`);
+    openWinModal(name);
+    setStatus('확인 후 다시 돌릴 수 있습니다.');
     paintWheel();
   };
   canvas.addEventListener('transitionend', onEnd);
@@ -347,8 +347,9 @@ const syncAdminHash = () => {
 
 let aTaps = [];
 const onKey = (e) => {
-  if (e.key === 'Escape' && document.body.classList.contains('admin-open')) {
-    closeAdmin();
+  if (e.key === 'Escape') {
+    if (winDialog.open) return;
+    if (document.body.classList.contains('admin-open')) closeAdmin();
     return;
   }
   if (e.key === 'a' || e.key === 'A') {
@@ -377,6 +378,10 @@ export const __test = {
 };
 
 spinBtn.addEventListener('click', runSpin);
+document.getElementById('winClose').addEventListener('click', closeWinModal);
+winDialog.addEventListener('click', (e) => {
+  if (e.target === winDialog) closeWinModal();
+});
 
 document.getElementById('addPrize').addEventListener('click', () => {
   prizes = [
@@ -443,5 +448,4 @@ window.addEventListener('keydown', onKey);
 
 refresh();
 syncAdminHash();
-showResult('준비', true);
 setStatus('돌리기 버튼을 눌러 주세요.');

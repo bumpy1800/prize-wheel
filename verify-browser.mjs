@@ -31,7 +31,7 @@ const runOnce = async (page, label) => {
 
   const spin = page.locator('#spinBtn');
   const wheel = page.locator('#wheel');
-  const result = page.locator('#resultText');
+  const result = page.locator('#winName');
   await spin.waitFor({ state: 'visible' });
   await wheel.waitFor({ state: 'visible' });
 
@@ -53,8 +53,9 @@ const runOnce = async (page, label) => {
   await spin.click();
   await page.waitForFunction(
     () => {
-      const t = document.getElementById('resultText')?.textContent?.trim();
-      return t && t !== '…' && t !== '준비';
+      const d = document.getElementById('winDialog');
+      const t = document.getElementById('winName')?.textContent?.trim();
+      return d?.open && t;
     },
     null,
     { timeout: 8000 },
