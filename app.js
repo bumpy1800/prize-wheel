@@ -8,6 +8,8 @@ import {
   formatGroupedInt,
   wrapLabelLines,
   rotationToPointAt,
+  targetRotationDeg,
+  segmentAtPointer,
 } from './wheel-logic.js';
 
 /** @type {import('./wheel-logic.js').Prize[]} */
@@ -191,7 +193,9 @@ const finishSpinMotion = () => {
   const end = spinFinish;
   spinFinish = null;
   if (end?.type === 'win') {
-    openWinModal(end.name);
+    const pointed = segmentAtPointer(prizes, currentRotation);
+    const name = pointed?.name ?? end.name;
+    openWinModal(name);
     setStatus('확인 후 다시 돌릴 수 있습니다.');
     return;
   }
@@ -280,11 +284,10 @@ const runSpin = async () => {
       spinFinish = { type: 'win', name: outcome.winner?.name ?? '당첨', align: currentRotation };
       return;
     }
-    const align = rotationToPointAt(winSeg.midDeg);
     spinFinish = {
       type: 'win',
       name: outcome.winner?.name ?? '당첨',
-      align,
+      align: targetRotationDeg(winSeg, 0),
     };
   } catch (err) {
     spinFinish = {

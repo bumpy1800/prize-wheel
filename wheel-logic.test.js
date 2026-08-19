@@ -151,6 +151,18 @@ describe('pointer alignment', () => {
     assert.equal(segmentAtPointer(prizes, rot + 3 * 360).id, 'b');
   });
 
+  it('can land away from the segment midpoint', () => {
+    const segs = segmentLayout(prizes);
+    const midRot = rotationToPointAt(segs[1].midDeg);
+    const low = targetRotationDeg(segs[1], 0, () => 0.02);
+    const high = targetRotationDeg(segs[1], 0, () => 0.98);
+    assert.equal(segmentAtPointer(prizes, low).id, 'b');
+    assert.equal(segmentAtPointer(prizes, high).id, 'b');
+    assert.notEqual(pointerLayoutDeg(low), segs[1].midDeg);
+    assert.notEqual(low, midRot);
+    assert.notEqual(high, midRot);
+  });
+
   it('fractional extra turns shift the pointer off the winner', () => {
     const four = [
       { id: 'a', name: 'A', share: 25, total: 1, remaining: 1 },

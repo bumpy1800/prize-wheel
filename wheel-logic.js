@@ -109,8 +109,10 @@ export const segmentLayout = (prizes) => {
  */
 export const targetRotationDeg = (segment, extraSpins = 5, rng = Math.random) => {
   const span = segment.endDeg - segment.startDeg;
-  const pad = span * 0.2;
-  const within = segment.startDeg + pad + rng() * Math.max(0, span - pad * 2);
+  // Stay inside the slice, but not glued to the midpoint.
+  const pad = Math.min(span * 0.06, 2.5);
+  const inner = Math.max(0, span - pad * 2);
+  const within = segment.startDeg + pad + rng() * inner;
   return extraSpins * 360 + rotationToPointAt(within);
 };
 
